@@ -1,17 +1,21 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
+#include <stdint.h>
+#include <stdarg.h>
 
 
+void logger_debug  	(char *format, ... );
+
+void logger_info 	(char *format, ... );
+  
+
+void logger_error  	(char *format, ... );
+  
 
 
-
-
-void	logger_print_help 		(void);
-void	logger_print_debug		(const char * s);
-void	logger_print_info		(const char * s);
-void	logger_print_error 		(const char * s);
-
+/**   **/
+void logger_hexdump(char *data, int len);
 
 
 #endif /*LOGGER_H*/

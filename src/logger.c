@@ -4,34 +4,43 @@
 
 
 
-void logger_print_help (void) {
+void logger_debug  (char *format, ... ) {
 
-  printf("Help: \n");
+  printf("DEBUG: ");
+
+  va_list args;
+  va_start(args, format);
+  vprintf(format, args);
+  va_end(args);
+  return;
+}      
+
+void logger_info (char *format, ... ) {
+
+  printf("INFO: ");
+
+  va_list args;
+  va_start(args, format);
+  vprintf(format, args);
+  va_end(args);
+  
+  return;
+}      
+
+void logger_error  (char *format, ... ) {
+
+  printf("ERROR: ");
+  
+  va_list args;
+  va_start(args, format);
+  vprintf(format, args);
+  va_end(args);
+  
+  return;
+}      
+
+
+void logger_hexdump(char *data, int len) {
+
   return;
 }
-/*******/
-
-
-void logger_print_debug (const char * s) {
-
-  printf("DEBUG: %s\n", s);
-  return;
-}
-/*******/
-
-
-void logger_print_info (const char * s) {
-
-  printf("INFO: %s\n", s);
-  return;
-}
-/*******/
-
-
-void logger_print_error (const char * s) {
-
-  printf("ERROR: %s\n", s);
-  return;
-}
-/*******/
-

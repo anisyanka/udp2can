@@ -14,10 +14,6 @@
     and then it read only **/
 struct if_map_t * interface_map = NULL;
 
-/**  **/
-static int num_udp2can_conn = 0;
-static int num_can2udp_conn = 0;
-
 
 
 void intfmap_read_mapping_table (void) {
@@ -27,7 +23,7 @@ void intfmap_read_mapping_table (void) {
   map_file = fopen("interface_map.json", "r");
   if (map_file == NULL) {
 
-    logger_print_error("Can't open input file 'interface_map.json'!");
+    logger_error("Can't open input file 'interface_map.json'!\n");
     exit(EXIT_FAILURE);
   }
 
@@ -35,14 +31,14 @@ void intfmap_read_mapping_table (void) {
   struct stat statistics;
   if ( (stat("interface_map.json", &statistics)) < 0 ) {
 
-    perror("fstat(map_file, &statistics)");
+    perror("stat(map_file, &statistics)");
     exit(EXIT_FAILURE);
   }
 
   /** set limit on file size **/
   if (statistics.st_size > MAX_INTERFACE_MAP_SIZE) {
 
-    logger_print_error("too large mapping file!");
+    logger_error("too large mapping file!\n");
     exit(EXIT_FAILURE);
   }
 
@@ -60,7 +56,7 @@ void intfmap_read_mapping_table (void) {
 
     cJSON_Delete(json);
     free(buffer);
-    logger_print_error("cjson_parse. Bad file format!");
+    logger_error("cjson_parse. Bad file format!\n");
     exit(EXIT_FAILURE);
   }
 
@@ -102,81 +98,93 @@ void intfmap_read_mapping_table (void) {
 
       cJSON_Delete(json);
       free(buffer);
-      logger_print_error("wrong JSON");
+      logger_error("wrong JSON\n");
       exit(EXIT_FAILURE);
     }
 
     // check valid ip address to send data to can
     if ( (cJSON_IsString(ip2can)) && (ip2can->valuestring != NULL) ) {
+
       tmp_itnerface_map->to_can.ip = ip2can->valuestring;
-      printf("ip-to-can = %s\n", ip2can->valuestring);
+      logger_info("ip-->can = %s\n", ip2can->valuestring);
     }
     else {
+
       cJSON_Delete(json);
       free(buffer);
-      logger_print_error("ip port must be in string format");
+      logger_error("ip port must be in string format\n");
       exit(EXIT_FAILURE);
     }
 
     // check valid ip port to send data to can
     if (cJSON_IsNumber(port2can)) {
+
       tmp_itnerface_map->to_can.port = port2can->valueint;
-      printf("port-to-can = %d\n", port2can->valueint);
+      logger_info("port-->can = %d\n", port2can->valueint);
     }
     else {
+
       cJSON_Delete(json);
       free(buffer);
-      logger_print_error("port must be in integer format");
+      logger_error("port must be in integer format\n");
       exit(EXIT_FAILURE);
     }
 
     // check valid ip address to send data from can
     if ( (cJSON_IsString(can2ip)) && (can2ip->valuestring != NULL) ) {
+
       tmp_itnerface_map->from_can.ip = can2ip->valuestring;
-      printf("can-to-ip = %s\n", can2ip->valuestring);
+      logger_info("can-->ip = %s\n", can2ip->valuestring);
     }
     else {
+
       cJSON_Delete(json);
       free(buffer);
-      logger_print_error("ip port must be in string format");
+      logger_error("ip port must be in string format\n");
       exit(EXIT_FAILURE);
     }
 
     // check valid ip port to sen data from can
     if (cJSON_IsNumber(can2port)) {
+
       tmp_itnerface_map->from_can.port = can2port->valueint;
-      printf("can-to-port = %d\n", can2port->valueint);
+      logger_info("can-->port = %d\n", can2port->valueint);
     }
     else {
+
       cJSON_Delete(json);
       free(buffer);
-      logger_print_error("port must be in integer format");
+      logger_error("port must be in integer format\n");
       exit(EXIT_FAILURE);
     }
 
     // check can-id-interface
     if ( (cJSON_IsString(can_id_interface)) && (can_id_interface->valuestring != NULL) ) {
+      
       tmp_itnerface_map->to_can.can_id_interface = can_id_interface->valuestring;
       tmp_itnerface_map->from_can.can_id_interface = can_id_interface->valuestring;
-      printf("can_id_interface = %s\n", can_id_interface->valuestring);
+      logger_info("can_id_interface = %s\n", can_id_interface->valuestring);
     }
     else {
+
       cJSON_Delete(json);
       free(buffer);
-      logger_print_error("can_id_interface must be in string format");
+      logger_error("can_id_interface must be in string format\n");
       exit(EXIT_FAILURE);    
     }
 
     // check can-id-protocol
     if (cJSON_IsNumber(can_id_protocol)) {
+
       tmp_itnerface_map->from_can.can_id_protocol = can_id_protocol->valueint;
       tmp_itnerface_map->to_can.can_id_protocol = can_id_protocol->valueint;
-      printf("can_id_protocol = %d\n\n", can_id_protocol->valueint);
+      logger_info("can_id_protocol = %d\n\n", can_id_protocol->valueint);
     }
     else {
+
       cJSON_Delete(json);
       free(buffer);
-      logger_print_error("can_id_protocol must be in integer format");
+      logger_error("can_id_protocol must be in integer format\n");
       exit(EXIT_FAILURE);
     }
   }
@@ -191,14 +199,40 @@ void intfmap_read_mapping_table (void) {
 
 int intfmap_get_diff_udp2can_conn (void) {
   
-  struct if_map_t *tmp_itnerface_tbl = NULL;
+  int num_udp2can_conn = 0;
 
-  /** calculate num of udp2can different connection connections and delete same connections **/
+  struct if_map_t *tmp_itnerface_tbl = NULL;
+  struct if_map_t *tmp_itnerface_tbl1 = NULL;
+  struct if_map_t *tmp_itnerface_tbl2 = NULL;
+
+  /** calculate num of udp2can different connections and delete same connections **/
   tmp_itnerface_tbl = interface_map;
 
-  while (tmp_itnerface_tbl != NULL) {
+  if (tmp_itnerface_tbl->next == NULL) {
 
-    tmp_itnerface_tbl = tmp_itnerface_tbl->next;
+    num_udp2can_conn = 1;
+  }
+  else {
+
+    num_udp2can_conn = 1;
+
+    while (tmp_itnerface_tbl->next != NULL) {
+
+      tmp_itnerface_tbl1 = tmp_itnerface_tbl;
+      tmp_itnerface_tbl2 = tmp_itnerface_tbl->next;
+
+      while (tmp_itnerface_tbl2 != NULL) {
+
+        // compare string ip-port-can from tbl1 vs ip-port-can tbl2
+        // if strings are same - delete one same connection
+
+        // update for next iteration
+        tmp_itnerface_tbl2 = tmp_itnerface_tbl2->next;
+      }
+      
+      // update for next iteration
+      tmp_itnerface_tbl = tmp_itnerface_tbl->next;
+    }
   }
 
   return num_udp2can_conn;
@@ -208,17 +242,24 @@ int intfmap_get_diff_udp2can_conn (void) {
 
 int intfmap_get_diff_can2udp_conn (void) {
 
-  struct if_map_t *tmp_itnerface_tbl = NULL;
+  static int num_can2udp_conn = 0;
+
+  struct if_map_t *tmp_itnerface_tbl1 = NULL;
+  struct if_map_t *tmp_itnerface_tbl2 = NULL;
 
   /** calculate num of can2udp different connection connections and delete same connections **/
-  tmp_itnerface_tbl = interface_map;
 
-  while (tmp_itnerface_tbl != NULL) {
-
-    tmp_itnerface_tbl = tmp_itnerface_tbl->next;
-  }
 
   return num_can2udp_conn;
 }
 /*******/
 
+/*
+    char str[MAX_STRLEN_FOR_INTERFACE_NAMING];
+    char str_port[10];
+
+    strcpy(str, interface_map->to_can.ip);
+    strcat(str,":");
+    strcat(str, itoa(interface_map->to_can.port, str_port, 10));
+    strcat(str, "->");
+    strcat(str, interface_map->to_can.can_id_interface);*/

@@ -1,15 +1,9 @@
 /* 
  *  Test case for Linux-embedded developers:
- *  UDP-to-CAN converter
+ *  UDP-to-CAN (and CAN-to-UDP) converter
  *  
  *  Author: Anisimov Alexander
  *  E-mail: anisimov.alexander.s@gmail.com
- *
- *  HOW IT WORKS:
- *  
- *
- *
- *
  *
  */
 #include "main.h"
@@ -34,14 +28,15 @@
 /** pointer to table of interfaces. Table is fall in when read_mapping_table function and then only read in threads **/
 extern struct if_map_t * interface_map;
 
-
 /**  **/
-struct conn_data_t{
+struct conn_data_t {
 
-  char           *ip;
-  char           *can_interface_id;
-  int             can_protocol_id;
-  unsigned short port;
+  pthread_mutex_t   mutex;
+  char              *ip;
+  char              *can_interface_id;
+  int               can_protocol_id;
+  unsigned short    port;
+  bool              is_mutex_need; //==1 if more then one ip:port per one can-interface (that's why mutex is needed)
 };
 
 
@@ -53,30 +48,43 @@ void *can2udp_listener (void * args);
 
 int main (const int const argc, const char const *argv[]) {
 
-  int i;
+  int i, j;
 
-  /** make interface map table ( struct 'interface_map') from "interface_map.json" file **/
+  /** make interface map table ( struct 'interface_map' - declared in interface_mapping.c file) from "interface_map.json" file **/
   intfmap_read_mapping_table();
 
   /** calculate different number of udp->can and can->udp connections  **/
+  /** It's need for cteation true threads number **/
   const int num_diff_udp2can_conn = intfmap_get_diff_udp2can_conn();
   const int num_diff_can2udp_conn = intfmap_get_diff_can2udp_conn();
 
   #if (UDP2CAN_DEBUG)
-    printf("num_diff_udp2can_conn = %d\n", (int)num_diff_udp2can_conn);
-    printf("num_diff_can2udp_conn = %d\n", (int)num_diff_can2udp_conn);
+    logger_info("num_diff_udp2can_conn = %d\n", (int)num_diff_udp2can_conn);
+    logger_info("num_diff_can2udp_conn = %d\n", (int)num_diff_can2udp_conn);
   #endif
 
   /** create one udp thread per one can connection **/
   pthread_t udp2can_pthreads[num_diff_udp2can_conn];
   struct conn_data_t udp2can_conn_data[num_diff_udp2can_conn];
+  struct if_map_t * tmp_interface_table = interface_map;
 
   for (i = 0; i < num_diff_udp2can_conn; ++i) {
 
-    udp2can_conn_data[i].ip = interface_map->to_can.ip;
-    udp2can_conn_data[i].port = interface_map->to_can.port;
-    udp2can_conn_data[i].can_interface_id = interface_map->to_can.can_id_interface;
-    udp2can_conn_data[i].can_protocol_id = interface_map->to_can.can_id_protocol;
+    udp2can_conn_data[i].ip = tmp_interface_table->to_can.ip;
+    udp2can_conn_data[i].port = tmp_interface_table->to_can.port;
+    udp2can_conn_data[i].can_interface_id = tmp_interface_table->to_can.can_id_interface;
+    udp2can_conn_data[i].can_protocol_id = tmp_interface_table->to_can.can_id_protocol;
+
+    // define: mutex is needed for this connection or not
+    if (tmp_interface_table->to_can.is_need_mutex) {
+
+      udp2can_conn_data[i].is_mutex_need = true;
+      pthread_mutex_init(&udp2can_conn_data[i].mutex, NULL);
+    }
+    else {
+
+      udp2can_conn_data[i].is_mutex_need = false;
+    }
 
     if ( (pthread_create( &udp2can_pthreads[i], NULL,
                           udp2can_listener, (void *)&udp2can_conn_data[i])) != 0 )  {
@@ -84,25 +92,46 @@ int main (const int const argc, const char const *argv[]) {
       perror("udp-to-can pthread_create()");
       exit(EXIT_FAILURE);
     }
+
+    if (tmp_interface_table->next == NULL)
+      break;
+
+    tmp_interface_table = tmp_interface_table->next;
   }
 
   /** create one can thread per one udp connection **/
   pthread_t can2udp_pthreads[num_diff_can2udp_conn];
   struct conn_data_t can2udp_conn_data[num_diff_can2udp_conn];
+  tmp_interface_table = interface_map;
 
   for (i = 0; i < num_diff_can2udp_conn; ++i) {
 
-    can2udp_conn_data[i].ip = interface_map->from_can.ip;
-    can2udp_conn_data[i].port = interface_map->from_can.port;
-    can2udp_conn_data[i].can_interface_id = interface_map->from_can.can_id_interface;
-    can2udp_conn_data[i].can_protocol_id = interface_map->from_can.can_id_protocol;
+    can2udp_conn_data[i].ip = tmp_interface_table->from_can.ip;
+    can2udp_conn_data[i].port = tmp_interface_table->from_can.port;
+    can2udp_conn_data[i].can_interface_id = tmp_interface_table->from_can.can_id_interface;
+    can2udp_conn_data[i].can_protocol_id = tmp_interface_table->from_can.can_id_protocol;
     
+    // define: mutex is needed for this connection or not
+    if (tmp_interface_table->from_can.is_need_mutex) {
+
+      can2udp_conn_data[i].is_mutex_need = true;
+      pthread_mutex_init(&can2udp_conn_data[i].mutex, NULL);
+    }
+    else {
+
+      can2udp_conn_data[i].is_mutex_need = false;
+    }
     if ( (pthread_create( &can2udp_pthreads[i], NULL,
                           can2udp_listener, (void *)&can2udp_conn_data[i])) != 0 )  {
 
       perror("can-to-udp pthread_create()");
       exit(EXIT_FAILURE);
-    } 
+    }
+
+    if (tmp_interface_table->next == NULL)
+      break;
+
+    tmp_interface_table = tmp_interface_table->next;
   }
 
   while (true);
@@ -180,15 +209,14 @@ void *udp2can_listener (void * args) {
   while (true) {
 
     #if (UDP2CAN_DEBUG)
-      printf("Wait new data from udp socket . . .\n");
+      logger_debug("Wait new data from udp socket . . .\n");
     #endif
 
     num_udp_byte = recvfrom(udp_socket, input_udp_data, MAX_LEN_CAN_PACKET, 0,NULL, NULL);
 
     #if (UDP2CAN_DEBUG)
       input_udp_data[num_udp_byte] = '\0';
-      printf("New UDP data from %s:%d received \n", conn_data->ip, conn_data->port);
-      printf("%s\n", input_udp_data);
+      logger_debug("New UDP data from %s:%d received: %s\n", conn_data->ip, conn_data->port, input_udp_data);
     #endif
 
     frame.can_id  = conn_data->can_protocol_id;
@@ -197,10 +225,19 @@ void *udp2can_listener (void * args) {
     for (i = 0; i < num_udp_byte; ++i)
       frame.data[i] = input_udp_data[i];
     
-    // my be  take mutex
-    write(can_socket, &frame, sizeof(struct can_frame));
-    // my be release mutex
+    /** take mutex if it is needed**/
+    if (conn_data->is_mutex_need == true) {
 
+      pthread_mutex_lock(&conn_data->mutex);
+    }
+    
+    // send data to can
+    write(can_socket, &frame, sizeof(struct can_frame));
+
+    if (conn_data->is_mutex_need == true) {
+
+      pthread_mutex_unlock(&conn_data->mutex);
+    }
   }
 }
 /*************/
@@ -271,20 +308,30 @@ void *can2udp_listener (void * args) {
   while (true) {
 
     #if (UDP2CAN_DEBUG)
-      printf("Wait new data from can socket . . .\n");
+      logger_debug("Wait new data from can socket . . .\n");
     #endif
 
-    num_can_byte = read(can_socket, can_data, sizeof (can_data));\
+    num_can_byte = read(can_socket, can_data, sizeof(can_data));\
 
     #if (UDP2CAN_DEBUG)
       can_data[num_can_byte] = '\0';
-      printf("New CAN data from %s received \n", conn_data->can_interface_id);
-      printf("%s\n", can_data);
+      logger_debug("New CAN data from %s received: %s\n", conn_data->can_interface_id, can_data);
     #endif
 
-    // my be  take mutex
+
+    /** take mutex if it is needed**/
+    if (conn_data->is_mutex_need == true) {
+
+      pthread_mutex_lock(&conn_data->mutex);
+    }
+
+    // send data to udp
     sendto(udp_socket, can_data, num_can_byte, 0, NULL,  sizeof(addr));
-    // my be release mutex
+
+    if (conn_data->is_mutex_need == true) {
+
+      pthread_mutex_unlock(&conn_data->mutex);
+    }
 
   }
 }
