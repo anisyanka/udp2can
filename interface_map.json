@@ -1,0 +1,19 @@
+[
+	{
+		"ip-to-can":"127.0.0.1",
+		"port-to-can":5001,
+		"can-to-ip":"102.154.10.87",
+		"can-to-port":3030,
+		"can-interface-id":"vcan0",
+		"can-protocol-id":12
+	},
+
+	{
+		"ip-to-can":"221.18.90.67",
+		"port-to-can":3030,
+		"can-to-ip":"24.154.56.43",
+		"can-to-port":3030,
+		"can-interface-id":"vcan1",
+		"can-protocol-id":598
+	}
+]
