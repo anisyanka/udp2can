@@ -59,8 +59,8 @@ int main (const int const argc, const char const *argv[]) {
   intfmap_read_mapping_table();
 
   /** calculate different number of udp->can and can->udp connections  **/
-  const int num_diff_udp2can_conn = intfmap_get_diff_udp2can_conn()+1;
-  const int num_diff_can2udp_conn = intfmap_get_diff_can2udp_conn()+1;
+  const int num_diff_udp2can_conn = intfmap_get_diff_udp2can_conn();
+  const int num_diff_can2udp_conn = intfmap_get_diff_can2udp_conn();
 
   #if (UDP2CAN_DEBUG)
     printf("num_diff_udp2can_conn = %d\n", (int)num_diff_udp2can_conn);
@@ -138,11 +138,6 @@ void *udp2can_listener (void * args) {
   addr.sin_port = htons(conn_data->port);
   addr.sin_addr.s_addr = inet_addr(conn_data->ip);
 
-  #if (UDP2CAN_DEBUG)
-    printf("ip = %x\n", addr.sin_addr.s_addr);
-    printf("port = %x\n", addr.sin_port);
-  #endif
-
   if ( bind(udp_socket, (struct sockaddr *)&addr, sizeof(addr)) < 0 ) {
 
     perror("Error while udp-socket bind in udp2can_listener");
@@ -170,16 +165,12 @@ void *udp2can_listener (void * args) {
 
   can_addr.can_family  = AF_CAN;
   can_addr.can_ifindex = ifr.ifr_ifindex;
-
-  #if (UDP2CAN_DEBUG)
-    printf("%s at index in hex =  %x\n", ifname, ifr.ifr_ifindex);
-  #endif
   
   if ( bind(can_socket, (struct sockaddr *)&can_addr, sizeof(can_addr)) < 0 ) {
     
     perror("Error while can-socket bind in udp2can_listener");
     close(udp_socket);
-    close(can_socket);   
+    close(can_socket);
     
     /* MY  PC has no any can interface.That's why bind can socket returns error */
     exit(EXIT_FAILURE);
@@ -196,7 +187,7 @@ void *udp2can_listener (void * args) {
 
     #if (UDP2CAN_DEBUG)
       input_udp_data[num_udp_byte] = '\0';
-      printf("New data from %s:%d received \n", conn_data->ip, conn_data->port);
+      printf("New UDP data from %s:%d received \n", conn_data->ip, conn_data->port);
       printf("%s\n", input_udp_data);
     #endif
 
@@ -206,7 +197,10 @@ void *udp2can_listener (void * args) {
     for (i = 0; i < num_udp_byte; ++i)
       frame.data[i] = input_udp_data[i];
     
+    // my be  take mutex
     write(can_socket, &frame, sizeof(struct can_frame));
+    // my be release mutex
+
   }
 }
 /*************/
@@ -235,11 +229,6 @@ void *can2udp_listener (void * args) {
   addr.sin_port = htons(conn_data->port);
   addr.sin_addr.s_addr = inet_addr(conn_data->ip);
 
-  #if (UDP2CAN_DEBUG)
-    printf("ip = %x\n", addr.sin_addr.s_addr);
-    printf("port = %x\n", addr.sin_port);
-  #endif
-
   if ( bind(udp_socket, (struct sockaddr *)&addr, sizeof(addr)) < 0 ) {
 
     perror("Error while udp-socket bind in can2udp_listener");
@@ -267,10 +256,6 @@ void *can2udp_listener (void * args) {
 
   can_addr.can_family  = AF_CAN;
   can_addr.can_ifindex = ifr.ifr_ifindex;
-
-  #if (UDP2CAN_DEBUG)
-    printf("%s at index in hex =  %x\n", ifname, ifr.ifr_ifindex);
-  #endif
   
   if ( bind(can_socket, (struct sockaddr *)&can_addr, sizeof(can_addr)) < 0 ) {
     
@@ -289,8 +274,17 @@ void *can2udp_listener (void * args) {
       printf("Wait new data from can socket . . .\n");
     #endif
 
-    num_can_byte = read(can_socket, can_data, sizeof (can_data));
+    num_can_byte = read(can_socket, can_data, sizeof (can_data));\
+
+    #if (UDP2CAN_DEBUG)
+      can_data[num_can_byte] = '\0';
+      printf("New CAN data from %s received \n", conn_data->can_interface_id);
+      printf("%s\n", can_data);
+    #endif
+
+    // my be  take mutex
     sendto(udp_socket, can_data, num_can_byte, 0, NULL,  sizeof(addr));
+    // my be release mutex
 
   }
 }

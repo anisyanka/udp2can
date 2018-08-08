@@ -2,7 +2,7 @@
 	{
 		"ip-to-can":"127.0.0.1",
 		"port-to-can":5001,
-		"can-to-ip":"102.154.10.87",
+		"can-to-ip":"127.0.0.1",
 		"can-to-port":3030,
 		"can-interface-id":"vcan0",
 		"can-protocol-id":12
