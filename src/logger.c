@@ -40,6 +40,16 @@ void logger_error  (char *format, ... ) {
 }      
 
 
+void logger_empty  (char *format, ... ) {
+  
+  va_list args;
+  va_start(args, format);
+  vprintf(format, args);
+  va_end(args);
+  
+  return;
+}     
+
 void logger_hexdump(char *data, int len) {
 
   return;

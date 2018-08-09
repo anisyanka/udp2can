@@ -106,7 +106,6 @@ void intfmap_read_mapping_table (void) {
     if ( (cJSON_IsString(ip2can)) && (ip2can->valuestring != NULL) ) {
 
       tmp_itnerface_map->to_can.ip = ip2can->valuestring;
-      logger_info("ip-->can = %s\n", ip2can->valuestring);
     }
     else {
 
@@ -120,7 +119,6 @@ void intfmap_read_mapping_table (void) {
     if (cJSON_IsNumber(port2can)) {
 
       tmp_itnerface_map->to_can.port = port2can->valueint;
-      logger_info("port-->can = %d\n", port2can->valueint);
     }
     else {
 
@@ -134,7 +132,6 @@ void intfmap_read_mapping_table (void) {
     if ( (cJSON_IsString(can2ip)) && (can2ip->valuestring != NULL) ) {
 
       tmp_itnerface_map->from_can.ip = can2ip->valuestring;
-      logger_info("can-->ip = %s\n", can2ip->valuestring);
     }
     else {
 
@@ -148,7 +145,6 @@ void intfmap_read_mapping_table (void) {
     if (cJSON_IsNumber(can2port)) {
 
       tmp_itnerface_map->from_can.port = can2port->valueint;
-      logger_info("can-->port = %d\n", can2port->valueint);
     }
     else {
 
@@ -163,7 +159,6 @@ void intfmap_read_mapping_table (void) {
       
       tmp_itnerface_map->to_can.can_id_interface = can_id_interface->valuestring;
       tmp_itnerface_map->from_can.can_id_interface = can_id_interface->valuestring;
-      logger_info("can_id_interface = %s\n", can_id_interface->valuestring);
     }
     else {
 
@@ -178,7 +173,6 @@ void intfmap_read_mapping_table (void) {
 
       tmp_itnerface_map->from_can.can_id_protocol = can_id_protocol->valueint;
       tmp_itnerface_map->to_can.can_id_protocol = can_id_protocol->valueint;
-      logger_info("can_id_protocol = %d\n\n", can_id_protocol->valueint);
     }
     else {
 
@@ -192,6 +186,76 @@ void intfmap_read_mapping_table (void) {
 
   /** end parsing **/
   free(buffer);
+
+
+  /** make human readable string with connections 'interface_map->to_can.beauty_str_format' and from_can **/
+  if (interface_map != NULL) {
+
+    tmp_itnerface_map = interface_map;
+    char str_port[10];
+    
+    #if (UDP2CAN_DEBUG)
+      logger_empty("\n<<<*********\n");
+    #endif
+    
+    while (true) {
+      
+      // to CAN connections
+      sprintf(str_port,"%d",tmp_itnerface_map->to_can.port);
+      strcpy(tmp_itnerface_map->to_can.beauty_str_format, tmp_itnerface_map->to_can.ip);
+      strcat(tmp_itnerface_map->to_can.beauty_str_format,":");
+      strcat(tmp_itnerface_map->to_can.beauty_str_format, str_port);
+      strcat(tmp_itnerface_map->to_can.beauty_str_format, "-->");
+      strcat(tmp_itnerface_map->to_can.beauty_str_format, tmp_itnerface_map->to_can.can_id_interface);
+
+      #if (UDP2CAN_DEBUG)
+      logger_info("udp-->can    %s\n", tmp_itnerface_map->to_can.beauty_str_format);
+      #endif
+
+      if (tmp_itnerface_map->next == NULL)
+        break;
+
+      tmp_itnerface_map = tmp_itnerface_map->next;
+    }
+    #if (UDP2CAN_DEBUG)
+      logger_empty("*********>>>\n\n");
+    #endif
+  }
+
+  //
+  if (interface_map != NULL) {
+
+    tmp_itnerface_map = interface_map;
+    char str_port[10];
+    
+    #if (UDP2CAN_DEBUG)
+      logger_empty("<<<*********\n");
+    #endif
+    
+    while (true) {
+      
+      // to UDP connections
+      sprintf(str_port,"%d",tmp_itnerface_map->from_can.port);
+      strcpy(tmp_itnerface_map->from_can.beauty_str_format, tmp_itnerface_map->from_can.ip);
+      strcat(tmp_itnerface_map->from_can.beauty_str_format,":");
+      strcat(tmp_itnerface_map->from_can.beauty_str_format, str_port);
+      strcat(tmp_itnerface_map->from_can.beauty_str_format, "<--");
+      strcat(tmp_itnerface_map->from_can.beauty_str_format, tmp_itnerface_map->from_can.can_id_interface);
+
+      #if (UDP2CAN_DEBUG)
+      logger_info("can-->udp    %s\n", tmp_itnerface_map->from_can.beauty_str_format);
+      #endif
+
+      if (tmp_itnerface_map->next == NULL)
+        break;
+
+      tmp_itnerface_map = tmp_itnerface_map->next;
+    }
+    #if (UDP2CAN_DEBUG)
+      logger_empty("*********>>>\n\n");
+    #endif
+  }
+
   return;
 }
 /*******/
@@ -253,13 +317,3 @@ int intfmap_get_diff_can2udp_conn (void) {
   return num_can2udp_conn;
 }
 /*******/
-
-/*
-    char str[MAX_STRLEN_FOR_INTERFACE_NAMING];
-    char str_port[10];
-
-    strcpy(str, interface_map->to_can.ip);
-    strcat(str,":");
-    strcat(str, itoa(interface_map->to_can.port, str_port, 10));
-    strcat(str, "->");
-    strcat(str, interface_map->to_can.can_id_interface);*/

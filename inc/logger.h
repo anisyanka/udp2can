@@ -6,12 +6,10 @@
 
 
 void logger_debug  	(char *format, ... );
-
 void logger_info 	(char *format, ... );
-  
-
 void logger_error  	(char *format, ... );
-  
+void logger_empty   (char *format, ... );
+ 
 
 
 /**   **/

@@ -59,8 +59,8 @@ int main (const int const argc, const char const *argv[]) {
   const int num_diff_can2udp_conn = intfmap_get_diff_can2udp_conn();
 
   #if (UDP2CAN_DEBUG)
-    logger_info("num_diff_udp2can_conn = %d\n", (int)num_diff_udp2can_conn);
-    logger_info("num_diff_can2udp_conn = %d\n", (int)num_diff_can2udp_conn);
+    logger_debug("num_diff_udp2can_conn = %d\n", (int)num_diff_udp2can_conn);
+    logger_debug("num_diff_can2udp_conn = %d\n", (int)num_diff_can2udp_conn);
   #endif
 
   /** create one udp thread per one can connection **/

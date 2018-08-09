@@ -25,7 +25,7 @@ struct if_map_t {
     int                can_id_protocol;
   	unsigned short int port;
 
-    // string in format ip:port->can
+    // string in format ip:port-->can
     // need for define same interfaces with help strcmp() function
     char               beauty_str_format[MAX_STRLEN_FOR_INTERFACE_NAMING];
     bool               is_need_mutex;
@@ -38,7 +38,7 @@ struct if_map_t {
     int                can_id_protocol;
   	unsigned short int port;
 
-    // string in format can->ip:port
+    // string in format can-->ip:port
     // need for define same interfaces with help strcmp() function
     char               beauty_str_format[MAX_STRLEN_FOR_INTERFACE_NAMING];
     bool               is_need_mutex;
