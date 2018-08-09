@@ -338,10 +338,6 @@ int intfmap_get_diff_udp2can_conn (void) {
   struct if_map_t *tmp_tbl1 = NULL;
   struct if_map_t *tmp_tbl2 = NULL;
 
-  char str_port[10];
-  char tmp_str1[100];
-  char tmp_str2[100];
-
   /** calculate num of udp2can different connections and delete same connections **/
   tmp_tbl = interface_map;
 
@@ -359,25 +355,24 @@ int intfmap_get_diff_udp2can_conn (void) {
       tmp_tbl2 = tmp_tbl->next;
 
       while (tmp_tbl2 != NULL) {
-
-        // make string "ip:port"
-        sprintf(str_port, "%d", tmp_tbl1->to_can.port);
-        strcat(tmp_str1, tmp_tbl1->to_can.ip);
-        strcat(tmp_str1, str_port);
-
-        sprintf(str_port, "%d", tmp_tbl2->to_can.port);
-        strcat(tmp_str2, tmp_tbl2->to_can.ip);
-        strcat(tmp_str2, str_port);
         
-        if ( (strcmp(tmp_str1, tmp_str2)) == 0 ) {
+        if ( (strcmp(tmp_tbl1->to_can.can_id_interface, tmp_tbl2->to_can.can_id_interface)) == 0 ) {
           
           tmp_flag = 1;
           tmp_tbl1->to_can.is_need_mutex = true;
           tmp_tbl2->to_can.is_need_mutex = true;
+
+          #if (UDP2CAN_DEBUG)
+            logger_debug("to %s mutex is needed\n", tmp_tbl1->to_can.can_id_interface);
+          #endif
         }
         else {
 
           tmp_tbl2->to_can.is_need_mutex = false;
+
+          #if (UDP2CAN_DEBUG)
+            logger_debug("to %s mutex is not needed\n", tmp_tbl2->to_can.can_id_interface);
+          #endif
         }
         // update for next iteration
         tmp_tbl2 = tmp_tbl2->next;
@@ -385,6 +380,11 @@ int intfmap_get_diff_udp2can_conn (void) {
         if (tmp_flag == 0) {
 
           tmp_tbl1->to_can.is_need_mutex = false;
+
+          #if (UDP2CAN_DEBUG)
+            logger_debug("to %s mutex is not needed\n", tmp_tbl1->to_can.can_id_interface);
+          #endif
+
         }
       }
       
@@ -400,7 +400,7 @@ int intfmap_get_diff_udp2can_conn (void) {
 
 
 int intfmap_get_diff_can2udp_conn (void) {
-  
+
   int num_can2udp_conn = 0;
   int tmp_flag = 0;
 
@@ -408,9 +408,9 @@ int intfmap_get_diff_can2udp_conn (void) {
   struct if_map_t *tmp_tbl1 = NULL;
   struct if_map_t *tmp_tbl2 = NULL;
 
-  char str_port[10];
-  char tmp_str1[100];
-  char tmp_str2[100];
+  char str_port[10] = {0};
+  char tmp_str1[100] = {0};
+  char tmp_str2[100] = {0};
 
   /** calculate num of udp2can different connections and delete same connections **/
   tmp_tbl = interface_map;
@@ -433,10 +433,12 @@ int intfmap_get_diff_can2udp_conn (void) {
         // make string "ip:port"
         sprintf(str_port, "%d", tmp_tbl1->from_can.port);
         strcat(tmp_str1, tmp_tbl1->from_can.ip);
+        strcat(tmp_str1, ":");
         strcat(tmp_str1, str_port);
 
         sprintf(str_port, "%d", tmp_tbl2->from_can.port);
         strcat(tmp_str2, tmp_tbl2->from_can.ip);
+        strcat(tmp_str2, ":");
         strcat(tmp_str2, str_port);
         
         if ( (strcmp(tmp_str1, tmp_str2)) == 0 ) {
@@ -444,15 +446,27 @@ int intfmap_get_diff_can2udp_conn (void) {
           tmp_flag = 1;
           tmp_tbl1->from_can.is_need_mutex = true;
           tmp_tbl2->from_can.is_need_mutex = true;
+
+          #if (UDP2CAN_DEBUG)
+            logger_debug("to %s mutex is needed\n", tmp_str1);
+          #endif
         }
         else {
 
           tmp_tbl2->from_can.is_need_mutex = false;
+
+          #if (UDP2CAN_DEBUG)
+            logger_debug("to %s mutex is not needed\n", tmp_str2);
+          #endif
         }
         // update for next iteration
         tmp_tbl2 = tmp_tbl2->next;
 
         if (tmp_flag == 0) {
+
+          #if (UDP2CAN_DEBUG)
+            logger_debug("to %s mutex is not needed\n", tmp_str1);
+          #endif
 
           tmp_tbl1->from_can.is_need_mutex = false;
         }
