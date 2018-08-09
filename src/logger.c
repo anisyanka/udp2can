@@ -50,6 +50,18 @@ void logger_empty  (char *format, ... ) {
   return;
 }     
 
+void logger_todo  (char *format, ... ) {
+  
+  printf("TODO: ");
+
+  va_list args;
+  va_start(args, format);
+  vprintf(format, args);
+  va_end(args);
+  
+  return;
+}     
+
 void logger_hexdump(char *data, int len) {
 
   return;

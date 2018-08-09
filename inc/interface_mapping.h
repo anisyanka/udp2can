@@ -27,7 +27,7 @@ struct if_map_t {
 
     // string in format ip:port-->can
     // need for define same interfaces with help strcmp() function
-    char               beauty_str_format[MAX_STRLEN_FOR_INTERFACE_NAMING];
+    char               ip_port_can_str_format[MAX_STRLEN_FOR_INTERFACE_NAMING];
     bool               is_need_mutex;
 	} to_can;
 
@@ -40,7 +40,7 @@ struct if_map_t {
 
     // string in format can-->ip:port
     // need for define same interfaces with help strcmp() function
-    char               beauty_str_format[MAX_STRLEN_FOR_INTERFACE_NAMING];
+    char               ip_port_can_str_format[MAX_STRLEN_FOR_INTERFACE_NAMING];
     bool               is_need_mutex;
 	} from_can;
 };
@@ -52,14 +52,17 @@ struct if_map_t {
 
 
 
-/**  **/
+/**  
+  No thread safety func. Works with global structure.
+  Calls before thread create
+**/
 void intfmap_read_mapping_table     (void);
 int  intfmap_get_diff_udp2can_conn  (void);
 int  intfmap_get_diff_can2udp_conn  (void);
 
-
-
-
+void intfmap_delete_same_connection_from_map (void);
+void intfmap_print_diff_udp2can_conn (void);
+void intfmap_print_diff_can2udp_conn (void);
 
 
 #endif /*INTERFACE_MAPPING_H*/

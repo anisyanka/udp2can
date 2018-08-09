@@ -187,11 +187,25 @@ void intfmap_read_mapping_table (void) {
   /** end parsing **/
   free(buffer);
 
+  /**  **/
+  intfmap_delete_same_connection_from_map();
 
-  /** make human readable string with connections 'interface_map->to_can.beauty_str_format' and from_can **/
+  /**  **/
+  intfmap_print_diff_udp2can_conn();
+  intfmap_print_diff_can2udp_conn();
+
+  return;
+}
+/*******/
+
+
+
+
+void intfmap_print_diff_udp2can_conn (void) {
+
   if (interface_map != NULL) {
 
-    tmp_itnerface_map = interface_map;
+    struct if_map_t *tmp_itnerface_map = interface_map;
     char str_port[10];
     
     #if (UDP2CAN_DEBUG)
@@ -202,48 +216,14 @@ void intfmap_read_mapping_table (void) {
       
       // to CAN connections
       sprintf(str_port,"%d",tmp_itnerface_map->to_can.port);
-      strcpy(tmp_itnerface_map->to_can.beauty_str_format, tmp_itnerface_map->to_can.ip);
-      strcat(tmp_itnerface_map->to_can.beauty_str_format,":");
-      strcat(tmp_itnerface_map->to_can.beauty_str_format, str_port);
-      strcat(tmp_itnerface_map->to_can.beauty_str_format, "-->");
-      strcat(tmp_itnerface_map->to_can.beauty_str_format, tmp_itnerface_map->to_can.can_id_interface);
+      strcpy(tmp_itnerface_map->to_can.ip_port_can_str_format, tmp_itnerface_map->to_can.ip);
+      strcat(tmp_itnerface_map->to_can.ip_port_can_str_format,":");
+      strcat(tmp_itnerface_map->to_can.ip_port_can_str_format, str_port);
+      strcat(tmp_itnerface_map->to_can.ip_port_can_str_format, "-->");
+      strcat(tmp_itnerface_map->to_can.ip_port_can_str_format, tmp_itnerface_map->to_can.can_id_interface);
 
       #if (UDP2CAN_DEBUG)
-      logger_info("udp-->can    %s\n", tmp_itnerface_map->to_can.beauty_str_format);
-      #endif
-
-      if (tmp_itnerface_map->next == NULL)
-        break;
-
-      tmp_itnerface_map = tmp_itnerface_map->next;
-    }
-    #if (UDP2CAN_DEBUG)
-      logger_empty("*********>>>\n\n");
-    #endif
-  }
-
-  //
-  if (interface_map != NULL) {
-
-    tmp_itnerface_map = interface_map;
-    char str_port[10];
-    
-    #if (UDP2CAN_DEBUG)
-      logger_empty("<<<*********\n");
-    #endif
-    
-    while (true) {
-      
-      // to UDP connections
-      sprintf(str_port,"%d",tmp_itnerface_map->from_can.port);
-      strcpy(tmp_itnerface_map->from_can.beauty_str_format, tmp_itnerface_map->from_can.ip);
-      strcat(tmp_itnerface_map->from_can.beauty_str_format,":");
-      strcat(tmp_itnerface_map->from_can.beauty_str_format, str_port);
-      strcat(tmp_itnerface_map->from_can.beauty_str_format, "<--");
-      strcat(tmp_itnerface_map->from_can.beauty_str_format, tmp_itnerface_map->from_can.can_id_interface);
-
-      #if (UDP2CAN_DEBUG)
-      logger_info("can-->udp    %s\n", tmp_itnerface_map->from_can.beauty_str_format);
+        logger_info("udp-->can    %s\n", tmp_itnerface_map->to_can.ip_port_can_str_format);
       #endif
 
       if (tmp_itnerface_map->next == NULL)
@@ -261,18 +241,111 @@ void intfmap_read_mapping_table (void) {
 /*******/
 
 
+
+
+void intfmap_print_diff_can2udp_conn (void) {
+
+  if (interface_map != NULL) {
+
+    struct if_map_t *tmp_itnerface_map = interface_map;
+    char str_port[10];
+    
+    #if (UDP2CAN_DEBUG)
+      logger_empty("<<<*********\n");
+    #endif
+    
+    while (true) {
+      
+      // to UDP connections
+      sprintf(str_port,"%d",tmp_itnerface_map->from_can.port);
+      strcpy(tmp_itnerface_map->from_can.ip_port_can_str_format, tmp_itnerface_map->from_can.ip);
+      strcat(tmp_itnerface_map->from_can.ip_port_can_str_format,":");
+      strcat(tmp_itnerface_map->from_can.ip_port_can_str_format, str_port);
+      strcat(tmp_itnerface_map->from_can.ip_port_can_str_format, "<--");
+      strcat(tmp_itnerface_map->from_can.ip_port_can_str_format, tmp_itnerface_map->from_can.can_id_interface);
+
+      #if (UDP2CAN_DEBUG)
+      logger_info("can-->udp    %s\n", tmp_itnerface_map->from_can.ip_port_can_str_format);
+      #endif
+
+      if (tmp_itnerface_map->next == NULL)
+        break;
+
+      tmp_itnerface_map = tmp_itnerface_map->next;
+    }
+    #if (UDP2CAN_DEBUG)
+      logger_empty("*********>>>\n\n");
+    #endif
+  }
+  return;
+}
+/*******/
+
+
+
+
+
+
+
+void intfmap_delete_same_connection_from_map (void) {
+
+  struct if_map_t *tmp_tbl = NULL;
+  struct if_map_t *tmp_tbl1 = NULL;
+  struct if_map_t *tmp_tbl2 = NULL;
+
+  /** calculate num of udp2can different connections and delete same connections **/
+  tmp_tbl = interface_map;
+
+  if (tmp_tbl->next != NULL) {
+
+    while (tmp_tbl->next != NULL) {
+
+      tmp_tbl1 = tmp_tbl;
+      tmp_tbl2 = tmp_tbl->next;
+
+      while (tmp_tbl2 != NULL) {
+
+        // compare string ip-port-can from tbl1 vs ip-port-can tbl2
+        // if strings are same - delete one same connection
+
+
+        // update for next iteration
+        tmp_tbl2 = tmp_tbl2->next;
+      }
+      
+      // update for next iteration
+      tmp_tbl = tmp_tbl->next;
+    }
+  }
+  logger_todo("delete same connections from the interface map, if there are same interfaces in json-file\n");
+  return;
+}
+/*******/
+
+
+
+
+
+
+
+
 int intfmap_get_diff_udp2can_conn (void) {
   
   int num_udp2can_conn = 0;
+  int tmp_flag = 0;
 
-  struct if_map_t *tmp_itnerface_tbl = NULL;
-  struct if_map_t *tmp_itnerface_tbl1 = NULL;
-  struct if_map_t *tmp_itnerface_tbl2 = NULL;
+  struct if_map_t *tmp_tbl = NULL;
+  struct if_map_t *tmp_tbl1 = NULL;
+  struct if_map_t *tmp_tbl2 = NULL;
+
+  char str_port[10];
+  char tmp_str1[100];
+  char tmp_str2[100];
 
   /** calculate num of udp2can different connections and delete same connections **/
-  tmp_itnerface_tbl = interface_map;
+  tmp_tbl = interface_map;
 
-  if (tmp_itnerface_tbl->next == NULL) {
+  if (tmp_tbl->next == NULL) {
 
     num_udp2can_conn = 1;
   }
@@ -280,22 +353,44 @@ int intfmap_get_diff_udp2can_conn (void) {
 
     num_udp2can_conn = 1;
 
-    while (tmp_itnerface_tbl->next != NULL) {
+    while (tmp_tbl->next != NULL) {
 
-      tmp_itnerface_tbl1 = tmp_itnerface_tbl;
-      tmp_itnerface_tbl2 = tmp_itnerface_tbl->next;
+      tmp_tbl1 = tmp_tbl;
+      tmp_tbl2 = tmp_tbl->next;
 
-      while (tmp_itnerface_tbl2 != NULL) {
+      while (tmp_tbl2 != NULL) {
 
-        // compare string ip-port-can from tbl1 vs ip-port-can tbl2
-        // if strings are same - delete one same connection
+        // make string "ip:port"
+        sprintf(str_port, "%d", tmp_tbl1->to_can.port);
+        strcat(tmp_str1, tmp_tbl1->to_can.ip);
+        strcat(tmp_str1, str_port);
 
+        sprintf(str_port, "%d", tmp_tbl2->to_can.port);
+        strcat(tmp_str2, tmp_tbl2->to_can.ip);
+        strcat(tmp_str2, str_port);
+        
+        if ( (strcmp(tmp_str1, tmp_str2)) == 0 ) {
+          
+          tmp_flag = 1;
+          tmp_tbl1->to_can.is_need_mutex = true;
+          tmp_tbl2->to_can.is_need_mutex = true;
+        }
+        else {
+
+          tmp_tbl2->to_can.is_need_mutex = false;
+        }
         // update for next iteration
-        tmp_itnerface_tbl2 = tmp_itnerface_tbl2->next;
+        tmp_tbl2 = tmp_tbl2->next;
+
+        if (tmp_flag == 0) {
+
+          tmp_tbl1->to_can.is_need_mutex = false;
+        }
       }
       
       // update for next iteration
-      tmp_itnerface_tbl = tmp_itnerface_tbl->next;
+      tmp_tbl = tmp_tbl->next;
+      ++num_udp2can_conn;
     }
   }
 
@@ -305,15 +400,70 @@ int intfmap_get_diff_udp2can_conn (void) {
 
 
 int intfmap_get_diff_can2udp_conn (void) {
+  
+  int num_can2udp_conn = 0;
+  int tmp_flag = 0;
 
-  static int num_can2udp_conn = 0;
+  struct if_map_t *tmp_tbl = NULL;
+  struct if_map_t *tmp_tbl1 = NULL;
+  struct if_map_t *tmp_tbl2 = NULL;
 
-  struct if_map_t *tmp_itnerface_tbl1 = NULL;
-  struct if_map_t *tmp_itnerface_tbl2 = NULL;
+  char str_port[10];
+  char tmp_str1[100];
+  char tmp_str2[100];
 
-  /** calculate num of can2udp different connection connections and delete same connections **/
+  /** calculate num of udp2can different connections and delete same connections **/
+  tmp_tbl = interface_map;
 
+  if (tmp_tbl->next == NULL) {
 
+    num_can2udp_conn = 1;
+  }
+  else {
+
+    num_can2udp_conn = 1;
+
+    while (tmp_tbl->next != NULL) {
+
+      tmp_tbl1 = tmp_tbl;
+      tmp_tbl2 = tmp_tbl->next;
+
+      while (tmp_tbl2 != NULL) {
+
+        // make string "ip:port"
+        sprintf(str_port, "%d", tmp_tbl1->from_can.port);
+        strcat(tmp_str1, tmp_tbl1->from_can.ip);
+        strcat(tmp_str1, str_port);
+
+        sprintf(str_port, "%d", tmp_tbl2->from_can.port);
+        strcat(tmp_str2, tmp_tbl2->from_can.ip);
+        strcat(tmp_str2, str_port);
+        
+        if ( (strcmp(tmp_str1, tmp_str2)) == 0 ) {
+          
+          tmp_flag = 1;
+          tmp_tbl1->from_can.is_need_mutex = true;
+          tmp_tbl2->from_can.is_need_mutex = true;
+        }
+        else {
+
+          tmp_tbl2->from_can.is_need_mutex = false;
+        }
+        // update for next iteration
+        tmp_tbl2 = tmp_tbl2->next;
+
+        if (tmp_flag == 0) {
+
+          tmp_tbl1->from_can.is_need_mutex = false;
+        }
+      }
+      
+      // update for next iteration
+      tmp_tbl = tmp_tbl->next;
+      ++num_can2udp_conn;
+    }
+  }
   return num_can2udp_conn;
 }
 /*******/
+

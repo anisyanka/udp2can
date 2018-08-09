@@ -9,10 +9,10 @@
 	},
 
 	{
-		"ip-to-can":"221.18.90.67",
-		"port-to-can":3030,
-		"can-to-ip":"24.154.56.43",
-		"can-to-port":3030,
+		"ip-to-can":"127.0.0.1",
+		"port-to-can":3031,
+		"can-to-ip":"127.0.0.1",
+		"can-to-port":3032,
 		"can-interface-id":"vcan1",
 		"can-protocol-id":598
 	}
