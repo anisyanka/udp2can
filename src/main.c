@@ -36,6 +36,7 @@ struct conn_data_t {
   char              *can_interface_id;
   int               can_protocol_id;
   unsigned short    port;
+  char              thread_id;
   bool              is_mutex_need; //==1 if more then one ip:port per one can-interface (that's why mutex is needed)
 };
 
@@ -85,6 +86,8 @@ int main (const int const argc, const char const *argv[]) {
 
       udp2can_conn_data[i].is_mutex_need = false;
     }
+    
+    udp2can_conn_data[i].thread_id = i;
 
     if ( (pthread_create( &udp2can_pthreads[i], NULL,
                           udp2can_listener, (void *)&udp2can_conn_data[i])) != 0 )  {
@@ -121,6 +124,9 @@ int main (const int const argc, const char const *argv[]) {
 
       can2udp_conn_data[i].is_mutex_need = false;
     }
+
+    can2udp_conn_data[i].thread_id = i;
+
     if ( (pthread_create( &can2udp_pthreads[i], NULL,
                           can2udp_listener, (void *)&can2udp_conn_data[i])) != 0 )  {
 
@@ -308,14 +314,14 @@ void *can2udp_listener (void * args) {
   while (true) {
 
     #if (UDP2CAN_DEBUG)
-      logger_debug("Wait new data from can socket . . .\n");
+      logger_debug("Wait new data from can socket in thread %d. . .\n", conn_data->thread_id);
     #endif
 
     num_can_byte = read(can_socket, can_data, sizeof(can_data));\
 
     #if (UDP2CAN_DEBUG)
       can_data[num_can_byte] = '\0';
-      logger_debug("New CAN data from %s received: %s\n", conn_data->can_interface_id, can_data);
+      logger_debug("New CAN data from %s received: %s (in thread %d)\n", conn_data->can_interface_id, can_data, conn_data->thread_id);
     #endif
 
 
