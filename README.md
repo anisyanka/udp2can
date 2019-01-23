@@ -9,7 +9,7 @@
  - запустить
 
 ```sh
-cd yandex-test-case
+cd udp2can
 make
 ./udp2can
 ```
